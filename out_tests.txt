@@ -1,0 +1,118 @@
+### T01 tipos de dados
++----------+---------------+-----------------------------+-------------+
+|  tabela  |    coluna     |            tipo             | aceita_nulo |
++----------+---------------+-----------------------------+-------------+
+| filme    | filme_id      | integer                     | NO          |
+| filme    | titulo        | character varying(120)      | NO          |
+| filme    | genero_id     | smallint                    | NO          |
+| filme    | duracao_min   | smallint                    | NO          |
+| filme    | classificacao | character varying(3)        | NO          |
+| filme    | data_estreia  | date                        | NO          |
+| filme    | em_cartaz     | boolean                     | NO          |
+| ingresso | ingresso_id   | bigint                      | NO          |
+| ingresso | sessao_id     | integer                     | NO          |
+| ingresso | cliente_id    | integer                     | NO          |
+| ingresso | poltrona      | smallint                    | NO          |
+| ingresso | tipo          | character varying(7)        | NO          |
+| ingresso | valor_pago    | numeric(7,2)                | NO          |
+| ingresso | status        | character varying(10)       | NO          |
+| ingresso | data_compra   | timestamp with time zone    | NO          |
+| sessao   | sessao_id     | integer                     | NO          |
+| sessao   | filme_id      | integer                     | NO          |
+| sessao   | sala_id       | smallint                    | NO          |
+| sessao   | inicio        | timestamp without time zone | NO          |
+| sessao   | fim           | timestamp without time zone | NO          |
+| sessao   | idioma        | character varying(10)       | NO          |
+| sessao   | preco_base    | numeric(7,2)                | NO          |
++----------+---------------+-----------------------------+-------------+
+(22 rows)
+
+### T02 restricoes por tabela e tipo
++----------+----+----+----+----+------+
+|  tabela  | pk | fk | uq | ck | excl |
++----------+----+----+----+----+------+
+| cliente  |  1 |  0 |  2 |  3 |    0 |
+| filme    |  1 |  1 |  1 |  2 |    0 |
+| genero   |  1 |  0 |  1 |  0 |    0 |
+| ingresso |  1 |  2 |  0 |  4 |    0 |
+| sala     |  1 |  0 |  1 |  2 |    0 |
+| sessao   |  1 |  2 |  0 |  3 |    1 |
++----------+----+----+----+----+------+
+(6 rows)
+
+### T03 PK duplicada
+psql:tests.sql:11: ERROR:  duplicate key value violates unique constraint "genero_pkey"
+### T04 UNIQUE: cpf, email e titulo+estreia
+psql:tests.sql:13: ERROR:  duplicate key value violates unique constraint "cliente_cpf_key"
+psql:tests.sql:14: ERROR:  duplicate key value violates unique constraint "cliente_email_key"
+psql:tests.sql:15: ERROR:  duplicate key value violates unique constraint "filme_titulo_data_estreia_key"
+### T05 NOT NULL
+psql:tests.sql:17: ERROR:  null value in column "nome" of relation "cliente" violates not-null constraint
+### T06 FK: sessao inexistente; excluir genero em uso; excluir cliente com ingresso
+psql:tests.sql:19: ERROR:  insert or update on table "ingresso" violates foreign key constraint "ingresso_sessao_id_fkey"
+psql:tests.sql:20: ERROR:  update or delete on table "genero" violates foreign key constraint "filme_genero_id_fkey" on table "filme"
+psql:tests.sql:21: ERROR:  update or delete on table "cliente" violates foreign key constraint "ingresso_cliente_id_fkey" on table "ingresso"
+### T07 CHECK
+psql:tests.sql:23: ERROR:  new row for relation "filme" violates check constraint "filme_duracao_min_check"
+psql:tests.sql:24: ERROR:  new row for relation "filme" violates check constraint "filme_classificacao_check"
+psql:tests.sql:25: ERROR:  new row for relation "sala" violates check constraint "sala_capacidade_check"
+psql:tests.sql:26: ERROR:  new row for relation "cliente" violates check constraint "cliente_cpf_check"
+psql:tests.sql:27: ERROR:  new row for relation "cliente" violates check constraint "cliente_data_nascimento_check"
+psql:tests.sql:28: ERROR:  new row for relation "sessao" violates check constraint "sessao_check"
+psql:tests.sql:29: ERROR:  new row for relation "sessao" violates check constraint "sessao_preco_base_check"
+### T08 EXCLUDE: sobreposicao de sessoes na mesma sala
+psql:tests.sql:32: ERROR:  conflicting key value violates exclusion constraint "sessao_sala_id_tsrange_excl"
+### T09 poltrona: venda valida, duplicada, inexistente, cancelamento libera
+psql:tests.sql:38: ERROR:  duplicate key value violates unique constraint "uq_ingresso_poltrona_ativa"
+psql:tests.sql:39: ERROR:  poltrona 101 inexistente na sala (capacidade 100)
++----------+------------+-----------+
+| poltrona | cliente_id |  status   |
++----------+------------+-----------+
+|       10 |          1 | CANCELADO |
+|       10 |          2 | VENDIDO   |
++----------+------------+-----------+
+(2 rows)
+
+### T10 sala lotada: todas as poltronas vendidas e tentativa extra
++----------+
+| vendidos |
++----------+
+|       30 |
++----------+
+(1 row)
+
+psql:tests.sql:48: ERROR:  duplicate key value violates unique constraint "uq_ingresso_poltrona_ativa"
+psql:tests.sql:49: ERROR:  poltrona 31 inexistente na sala (capacidade 30)
+### T11 tipos: precisao monetaria, limites numericos e datas
++-------------------+--------------------+
+| float8_soma_exata | numeric_soma_exata |
++-------------------+--------------------+
+| f                 | t                  |
++-------------------+--------------------+
+(1 row)
+
++-------------+
+| soma_float4 |
++-------------+
+|     9998.56 |
++-------------+
+(1 row)
+
++--------------+
+| soma_numeric |
++--------------+
+|     10000.00 |
++--------------+
+(1 row)
+
+psql:tests.sql:54: ERROR:  numeric field overflow
+psql:tests.sql:55: ERROR:  smallint out of range
+psql:tests.sql:56: ERROR:  date/time field value out of range: "2026-02-30" at character 98
+psql:tests.sql:57: ERROR:  new row for relation "cliente" violates check constraint "cliente_cpf_check"
++---------------------+---------------+--------------------------+
+|    sessao_local     | fuso_servidor |     tipo_data_compra     |
++---------------------+---------------+--------------------------+
+| 2026-12-20 19:00:00 | UTC           | timestamp with time zone |
++---------------------+---------------+--------------------------+
+(1 row)
+

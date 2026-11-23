@@ -1,0 +1,19 @@
+ANTES (sem indices extras)
+Q1 ingressos de um cliente | Seq Scan on ingresso | mediana 5.712 ms
+Q2 sessoes de um dia | Seq Scan on sessao | mediana 0.199 ms
+Q3 sessoes de um filme | Seq Scan on sessao | mediana 0.173 ms
+Q4 ingressos vendidos de uma sessao | Index Scan using uq_ingresso_poltrona_ativa on ingresso | mediana 0.046 ms
+DEPOIS (idx_ingresso_cliente, idx_sessao_inicio, idx_sessao_filme)
+Q1 ingressos de um cliente | Bitmap Heap Scan on ingresso | mediana 0.093 ms
+Q2 sessoes de um dia | Index Scan using idx_sessao_inicio on sessao | mediana 0.046 ms
+Q3 sessoes de um filme | Bitmap Heap Scan on sessao | mediana 0.095 ms
+Q4 ingressos vendidos de uma sessao | Index Scan using uq_ingresso_poltrona_ativa on ingresso | mediana 0.040 ms
+SET
+idx_ingresso_cliente|CREATE INDEX idx_ingresso_cliente ON cinema.ingresso USING btree (cliente_id)
+idx_sessao_filme|CREATE INDEX idx_sessao_filme ON cinema.sessao USING btree (filme_id)
+idx_sessao_inicio|CREATE INDEX idx_sessao_inicio ON cinema.sessao USING btree (inicio)
+ingresso_pkey|CREATE UNIQUE INDEX ingresso_pkey ON cinema.ingresso USING btree (ingresso_id)
+sessao_pkey|CREATE UNIQUE INDEX sessao_pkey ON cinema.sessao USING btree (sessao_id)
+sessao_sala_id_tsrange_excl|CREATE INDEX sessao_sala_id_tsrange_excl ON cinema.sessao USING gist (sala_id, tsrange(inicio, fim))
+uq_ingresso_poltrona_ativa|CREATE UNIQUE INDEX uq_ingresso_poltrona_ativa ON cinema.ingresso USING btree (sessao_id, poltrona) WHERE ((status)::text = 'VENDIDO'::text)
+
